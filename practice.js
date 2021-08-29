@@ -13,3 +13,19 @@ mascots.forEach(function(mascot) {
     console.log(mascot.organization);
     console.log(mascot.birth_year);
 });
+const urlDatabase = {
+  "b2xVn2": "http://www.lighthouselabs.ca",
+  "9sm5xK": "http://www.google.com"
+};
+// app.get('/urls',(req,res)=>{
+//   const templateVars = {urls: urlDatabase};
+//   res.render("url_index",templateVars)
+// });
+
+urls =  {'x':"http",
+      "y":"fttp"
+    };
+
+    for (let url in urls){
+      console.log(urls[url]);
+    }
