@@ -29,3 +29,6 @@ urls =  {'x':"http",
     for (let url in urls){
       console.log(urls[url]);
     }
+    // console.log(Math.random().toString(36).slice(-6));
+    // //console.log(Math.random().toString(36));
+    // console.log(Math.random().toString(36).substr(2, 6));
