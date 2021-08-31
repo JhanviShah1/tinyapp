@@ -60,3 +60,13 @@ app.get("/u/:shortURL", (req, res) => {
   const templateVars = { shortURL, longURL };
   res.render("urls_show", templateVars);
 });
+
+//post route to delete the url
+//Add a POST route that removes a URL resource: POST /urls/:shortURL/delete
+//After the resource has been deleted, redirect the client back to the urls_index page ("/urls").
+app.post('/urls/:shortURL/delete',(req,res)=>{
+  const shortURL = req.params.shortURL;
+  console.log(shortURL);
+  delete urlDatabase[shortURL];
+  res.redirect("/urls");
+})
