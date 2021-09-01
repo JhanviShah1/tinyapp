@@ -22,7 +22,7 @@ const urlDatabase = {
 //   res.render("url_index",templateVars)
 // });
 
-urls =  {'x':"http",
+urls =  urlDatabase = {'x':"http",
       "y":"fttp"
     };
 
