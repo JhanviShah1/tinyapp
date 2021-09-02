@@ -10,15 +10,19 @@
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
     </div>
-    <%if(username){%>
-      <h5>Logged in as: </h5><%= username %>
+    <%if(user){%>
+      <h5>Logged in as: </h5><%= user.email %>
       <form class="form-inline" action="/logout" method="POST">
         <button type="submit" > Logout </button> 
       </form>
     <%} else {%>
-      <form class="form-inline" action="/login" method="POST">
-        <input class="form-control" type="text" name="username"   placeholder="username"style="width: 300px; margin: 1em">
+      <form class="form-inline" action="/login" method="GET">
+        <!-- <input class="form-control" type="text" name="username"   placeholder="username"style="width: 300px; margin: 1em"> -->
             <button type="submit"> Login </button> 
+      </form>
+      <form class="form-inline" action="/register" method="GET">
+        <!-- <input class="form-control" type="text" name="username"   placeholder="username"style="width: 300px; margin: 1em"> -->
+            <button type="submit"> Register </button> 
       </form>
 
       <% } %>

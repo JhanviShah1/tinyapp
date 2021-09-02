@@ -12,6 +12,20 @@ const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
+//USER DATABASE
+
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
+}
 
 app.get('/',(req, res)=> {
   res.send('Hello!');
@@ -33,13 +47,17 @@ function generateRandomString() {
 };
 //renders the http://localhost:8080/urls page with the list of short and long URL's
 app.get('/urls',(req,res)=>{
-  const templateVars = {urls: urlDatabase, username: req.cookies["username"]};
-
+  console.log("users", users);
+  let userID = req.cookies["user_id"];
+  const templateVars = {urls: urlDatabase, user: users[userID]};
   res.render("urls_index",templateVars);
 })
 //renders a page http://localhost:8080/urls/new
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"]};
+  let userID = req.cookies["userRandomID"];
+  console.log(userID);
+  console.log(users);
+  const templateVars = { user: users[userID]};
   res.render("urls_new", templateVars);
 });
 //it will post(submit) new short and long URL to the URL's page. Input name = req.body.longURL
@@ -59,7 +77,8 @@ app.get("/u/:shortURL", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL];
-  const templateVars = { shortURL, longURL, username: req.cookies["username"] };
+  let userID = req.cookies["userRandomID"];
+  const templateVars = { shortURL, longURL, user: users[userID] };
   res.render("urls_show", templateVars);
 });
 
@@ -86,19 +105,68 @@ app.post('/urls/:id', (req,res) =>{
 
 app.post('/login',(req,res)=>{
   //console.log(req.body);
-  const username = req.body.username
-  res.cookie("username",username);
+  const email = req.body.email;
+  const password = req.body.password;
+  if(!email || !password){
+    return res.status(400).send(" Email or Password cannot be empty ");
+  }
+  const user = getUserbyEmail(email, users);
+  if (!user){
+    return res.status(400).send(" Email not found please register to proceed ");
+  }
+  res.cookie("user_id",user.id);
   res.redirect("urls")
-  //res.send("ok");
 })
 // /logout endpoint to clear cookies
 app.post('/logout',(req,res)=>{
-  //res.clearCookie("username",username);
-  res.clearCookie("username");
+  res.clearCookie("userRandomID");
   res.redirect("urls")
-})
+});
 
+// a function to check user, if there the email already exists in the database
+const getUserbyEmail = function(email, users){
+  for (const userID in users) {
+    const user = users[userID];
+    if (user.email === email) {
+      return user 
+    }
+  }
+  return false;
+}
 
+//Create a GET /register endpoint
+app.get('/register', (req,res)=>{
+  const templateVars = { user: null};
+  //const templateVars = {email:email,password:password};
+  res.render("register",templateVars);
+});
+// This endpoint should add a new user object to the global users object. The user object should include the user's id, email and password, similar to the example above. To generate a random user ID, use the same function you use to generate random IDs for URLs.
+// After adding the user, set a user_id cookie containing the user's newly generated ID.
+// Redirect the user to the /urls page.
+// Test that the users object is properly being appended to. You can insert a console.log or debugger prior to the redirect logic to inspect what data the object contains.
+// Also test that the user_id cookie is being set correctly upon redirection. You already did this sort of testing in the Cookies in Express activity. Use the same approach here.
+app.post('/register',(req,res)=>{
+  console.log(req.body.email);
+  console.log(req.body.password);
+  const email = req.body.email;
+  const password = req.body.password;
+  if(!email || !password){
+    return res.status(400).send(" Email or Password cannot be empty ");
+  }
 
+  const checkUser = getUserbyEmail(email, users);
+  if (checkUser){
+    return res.status(400).send(" User already exists ");
+  }
+
+  const userRandomID = generateRandomString();
+  const user = { id: userRandomID, email: email, password: password }
+  users[userRandomID]= user;
+  res.cookie("user_id" , userRandomID);
+  res.redirect('/urls');
+  console.log("register.......",users);
+});
+// If the e-mail or password are empty strings, send back a response with the 400 status code.
+// If someone tries to register with an email that is already in the users object, send back a response with the 400 status code. Checking for an email in the users object is something we'll need to do in other routes as well. Consider creating an email lookup helper function to keep your code DRY
 
 
