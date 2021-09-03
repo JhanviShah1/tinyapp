@@ -45,6 +45,26 @@ app.get("/hello", (req, res) => {
 function generateRandomString() {
   return (Math.random().toString(36).substr(2, 6));
 };
+// A FUNCTION to check user, if their the email already exists in the database
+const getUserbyEmail = function(email, users){
+  for (const userID in users) {
+    const user = users[userID];
+    if (user.email === email) {
+      return user 
+    }
+  }
+  return false;
+}
+// A FUNCTION to check if user's the password match 
+const checkPassword = function(password,users){
+  for (const userID in users){
+    const user = users[userID];
+    if(user.password === password ){
+      return user;
+    }
+  }
+  return false;
+}
 //renders the http://localhost:8080/urls page with the list of short and long URL's
 app.get('/urls',(req,res)=>{
   console.log("users", users);
@@ -88,23 +108,28 @@ app.get("/urls/:shortURL", (req, res) => {
 
 app.post('/urls/:shortURL/delete',(req,res)=>{
   const shortURL = req.params.shortURL;
-  console.log(shortURL);
+  //console.log(shortURL);
   delete urlDatabase[shortURL];
   res.redirect("/urls");
 });
+
 //Edit the URL
-
-
 app.post('/urls/:id', (req,res) =>{
   const shortURL = req.params.id;
-  console.log("*******" , shortURL);
+  //console.log("*******" , shortURL);
   const longURL = req.body.longURL;
   urlDatabase[shortURL]= longURL;
   res.redirect("/urls");
 });
+//Create a new template with a LOGIN FORM; this form should ask for an email and password and send a POST request to /login.Create a GET /login endpoint that responds with this new login form template
+
+app.get('/login',(req,res)=> {
+  const templateVars = {user : null};
+res.render("login", templateVars);
+});
 
 app.post('/login',(req,res)=>{
-  //console.log(req.body);
+  console.log(req.body);
   const email = req.body.email;
   const password = req.body.password;
   if(!email || !password){
@@ -112,27 +137,24 @@ app.post('/login',(req,res)=>{
   }
   const user = getUserbyEmail(email, users);
   if (!user){
-    return res.status(400).send(" Email not found please register to proceed ");
+    return res.status(403).send(" Email not found please register to proceed ");
   }
+  const userPassword = checkPassword(password, users);
+    if (!userPassword) {
+      return res.status(403).send("password is incorrect");
+    }
+  
   res.cookie("user_id",user.id);
-  res.redirect("urls")
-})
-// /logout endpoint to clear cookies
-app.post('/logout',(req,res)=>{
-  res.clearCookie("userRandomID");
   res.redirect("urls")
 });
 
-// a function to check user, if there the email already exists in the database
-const getUserbyEmail = function(email, users){
-  for (const userID in users) {
-    const user = users[userID];
-    if (user.email === email) {
-      return user 
-    }
-  }
-  return false;
-}
+// /logout endpoint to clear cookies
+app.post('/logout',(req,res)=>{
+  res.clearCookie("user_id");
+  res.redirect("/login");
+});
+
+
 
 //Create a GET /register endpoint
 app.get('/register', (req,res)=>{
@@ -161,7 +183,7 @@ app.post('/register',(req,res)=>{
   const user = { id: userRandomID, email: email, password: password }
   users[userRandomID]= user;
   res.cookie("user_id" , userRandomID);
-  res.redirect('/urls');
+   res.redirect('/urls'); //res.redirect('/login');
   console.log("register.......",users);
 });
 // If the e-mail or password are empty strings, send back a response with the 400 status code.
