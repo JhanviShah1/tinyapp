@@ -6,10 +6,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
+const bcrypt = require('bcrypt');
 
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
-  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
+  i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" },
 };
 //USER DATABASE
 
@@ -40,7 +41,7 @@ app.get("/hello", (req, res) => {
 });
 //********************************************************** */
 //generating a alphanumeric string for shortURL
-const generateRandomString = function() {
+const generateRandomString = function () {
   return Math.random().toString(36).substr(2, 6);
 };
 // A FUNCTION to check user, if their the email already exists in the database
@@ -54,17 +55,18 @@ const getUserbyEmail = function (email, users) {
   return false;
 };
 // A FUNCTION to check if user's the password match
-const checkPassword = function (password, users) {
+const checkPassword = function(password, users) {
   for (const userID in users) {
     const user = users[userID];
-    if (user.password === password) {
+    //if (user.password === password)
+    if (bcrypt.compareSync(password, user.password)) {
       return user;
     }
   }
   return false;
 };
 //A FUNCTION to check a user by id
-const getUserbyID = function(userID,users) {
+const getUserbyID = function (userID, users) {
   const user = users[userID];
   if (user) {
     return user;
@@ -76,7 +78,7 @@ const getUserbyID = function(userID,users) {
 app.get("/urls", (req, res) => {
   //console.log("users", users);
   let userID = req.cookies["user_id"];
-  const user = getUserbyID(userID,users);
+  const user = getUserbyID(userID, users);
   const filterURL = {};
   if (user) {
     for (const shortURL in urlDatabase) {
@@ -86,7 +88,6 @@ app.get("/urls", (req, res) => {
     }
     const templateVars = { urls: filterURL, user: users[userID] };
     res.render("urls_index", templateVars);
-  
   } else {
     res.status(402).send("not allowed");
   }
@@ -94,12 +95,12 @@ app.get("/urls", (req, res) => {
 //renders a page http://localhost:8080/urls/new
 app.get("/urls/new", (req, res) => {
   let userID = req.cookies["user_id"];
-  const user = getUserbyID(userID,users);
+  const user = getUserbyID(userID, users);
   if (user) {
     const templateVars = { user: users[userID] };
     res.render("urls_new", templateVars);
   } else {
-    res.redirect('/login');
+    res.redirect("/login");
   }
 });
 //it will post(submit) new short and long URL to the URL's page. Input name = req.body.longURL
@@ -112,7 +113,7 @@ app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
   const userID = req.cookies["user_id"];
   const longURL = req.body.longURL;
-  const newURL = {longURL, userID};
+  const newURL = { longURL, userID };
   console.log(urlDatabase);
   urlDatabase[shortURL] = newURL;
   if (userID) {
@@ -128,13 +129,17 @@ app.get("/u/:shortURL", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
-  let userID = req.cookies["user_id"];
-  const user = getUserbyID(userID,users);
-  if (user) {
-    const templateVars = { shortURL, longURL, user: users[userID] };
-    res.render("urls_show", templateVars);
+  const userID = req.cookies["user_id"];
+  if (urlDatabase[shortURL].userID === userID) {
+    const user = getUserbyID(userID, users);
+    if (user) {
+      const templateVars = { shortURL, longURL, user: users[userID] };
+      res.render("urls_show", templateVars);
+    } else {
+      res.status(402).send("not allowed");
+    }
   } else {
-    res.status(402).send("not allowed");
+    res.status(402).send("URL does not belong to you");
   }
 });
 
@@ -143,19 +148,29 @@ app.get("/urls/:shortURL", (req, res) => {
 //After the resource has been deleted, redirect the client back to the urls_index page ("/urls")
 
 app.post("/urls/:shortURL/delete", (req, res) => {
+  const userID = req.cookies["user_id"];
   const shortURL = req.params.shortURL;
-  //console.log(shortURL);
-  delete urlDatabase[shortURL];
+  if (urlDatabase[shortURL].userID === userID) {
+    console.log("Will delete", shortURL);
+    delete urlDatabase[shortURL];
+  } else {
+    console.log("Will not delete", shortURL);
+  }
   res.redirect("/urls");
 });
 
 //Edit the URL
 app.post("/urls/:id", (req, res) => {
+  const userID = req.cookies["user_id"];
   const shortURL = req.params.id;
-  //console.log("*******" , shortURL);
-  const longURL = req.body.longURL;
-  urlDatabase[shortURL] = longURL;
-  res.redirect("/urls");
+  if (urlDatabase[shortURL].userID === userID) {
+    const longURL = req.body.longURL;
+    urlDatabase[shortURL].longURL = longURL;
+    console.log("edited******", longURL);
+    res.redirect("/urls");
+  } else {
+    res.redirect("/urls");
+  }
 });
 //Create a new template with a LOGIN FORM; this form should ask for an email and password and send a POST request to /login.Create a GET /login endpoint that responds with this new login form template
 
@@ -168,6 +183,7 @@ app.post("/login", (req, res) => {
   console.log(req.body);
   const email = req.body.email;
   const password = req.body.password;
+  
   if (!email || !password) {
     return res.status(400).send(" Email or Password cannot be empty ");
   }
@@ -213,8 +229,9 @@ app.post("/register", (req, res) => {
   if (checkUser) {
     return res.status(400).send(" User already exists ");
   }
+  const hashedPassword = bcrypt.hashSync(password, 10);
   const userRandomID = generateRandomString();
-  const user = { id: userRandomID, email: email, password: password };
+  const user = { id: userRandomID, email: email, password: hashedPassword };
   users[userRandomID] = user;
   res.cookie("user_id", userRandomID);
   res.redirect("/urls"); //res.redirect('/login');
@@ -225,4 +242,3 @@ app.post("/register", (req, res) => {
 // Modify your app so that only registered and logged in users can create new tiny URLs.
 
 // If someone is not logged in when trying to access /urls/new, redirect them to the login page.
-
