@@ -6,14 +6,27 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
+const cookieSession = require("cookie-session");
+app.use(
+  cookieSession({
+    name: "session",
+    keys: ["key1", "key2"],
+  })
+);
+const {
+  generateRandomString,
+  getUserbyID,
+  getUserbyEmail,
+  checkPassword,
+} = require("./helpers");
 
+//URL DATABASE
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
   i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" },
 };
 //USER DATABASE
-
 const users = {
   userRandomID: {
     id: "userRandomID",
@@ -39,45 +52,11 @@ app.get("/urls.json", (req, res) => {
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
-//********************************************************** */
-//generating a alphanumeric string for shortURL
-const generateRandomString = function () {
-  return Math.random().toString(36).substr(2, 6);
-};
-// A FUNCTION to check user, if their the email already exists in the database
-const getUserbyEmail = function (email, users) {
-  for (const userID in users) {
-    const user = users[userID];
-    if (user.email === email) {
-      return user;
-    }
-  }
-  return false;
-};
-// A FUNCTION to check if user's the password match
-const checkPassword = function(password, users) {
-  for (const userID in users) {
-    const user = users[userID];
-    //if (user.password === password)
-    if (bcrypt.compareSync(password, user.password)) {
-      return user;
-    }
-  }
-  return false;
-};
-//A FUNCTION to check a user by id
-const getUserbyID = function (userID, users) {
-  const user = users[userID];
-  if (user) {
-    return user;
-  }
-  return null;
-};
-/***************************************************************************/
+
 //renders the http://localhost:8080/urls page with the list of short and long URL's
 app.get("/urls", (req, res) => {
   //console.log("users", users);
-  let userID = req.cookies["user_id"];
+  let userID = req.session["user_id"];
   const user = getUserbyID(userID, users);
   const filterURL = {};
   if (user) {
@@ -94,7 +73,7 @@ app.get("/urls", (req, res) => {
 });
 //renders a page http://localhost:8080/urls/new
 app.get("/urls/new", (req, res) => {
-  let userID = req.cookies["user_id"];
+  let userID = req.session["user_id"];
   const user = getUserbyID(userID, users);
   if (user) {
     const templateVars = { user: users[userID] };
@@ -103,15 +82,12 @@ app.get("/urls/new", (req, res) => {
     res.redirect("/login");
   }
 });
-//it will post(submit) new short and long URL to the URL's page. Input name = req.body.longURL
-// const urlDatabase = {
-//   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "aJ48lW" },
-//   i3BoGr: { longURL: "https://www.google.ca", userID: "aJ48lW" }
-// };
+
+//it will post(submit) new short and long URL to the URL's page.
 app.post("/urls", (req, res) => {
-  console.log("=========", req.body); // Log the POST request body to the console
+  //console.log("=========", req.body); // Log the POST request body to the console
   const shortURL = generateRandomString();
-  const userID = req.cookies["user_id"];
+  const userID = req.session["user_id"];
   const longURL = req.body.longURL;
   const newURL = { longURL, userID };
   console.log(urlDatabase);
@@ -120,6 +96,7 @@ app.post("/urls", (req, res) => {
     res.redirect(`/urls/${shortURL}`);
   }
 });
+
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
@@ -129,7 +106,7 @@ app.get("/u/:shortURL", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
-  const userID = req.cookies["user_id"];
+  const userID = req.session["user_id"];
   if (urlDatabase[shortURL].userID === userID) {
     const user = getUserbyID(userID, users);
     if (user) {
@@ -146,44 +123,44 @@ app.get("/urls/:shortURL", (req, res) => {
 //post route to delete the url
 //Add a POST route that removes a URL resource: POST /urls/:shortURL/delete
 //After the resource has been deleted, redirect the client back to the urls_index page ("/urls")
-
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const userID = req.cookies["user_id"];
+  const userID = req.session["user_id"];
   const shortURL = req.params.shortURL;
   if (urlDatabase[shortURL].userID === userID) {
-    console.log("Will delete", shortURL);
+    //console.log("Will delete", shortURL);
     delete urlDatabase[shortURL];
   } else {
-    console.log("Will not delete", shortURL);
+    //console.log("Will not delete", shortURL);
   }
   res.redirect("/urls");
 });
 
 //Edit the URL
 app.post("/urls/:id", (req, res) => {
-  const userID = req.cookies["user_id"];
+  const userID = req.session["user_id"];
   const shortURL = req.params.id;
   if (urlDatabase[shortURL].userID === userID) {
     const longURL = req.body.longURL;
     urlDatabase[shortURL].longURL = longURL;
-    console.log("edited******", longURL);
+    //console.log("edited******", longURL);
     res.redirect("/urls");
   } else {
     res.redirect("/urls");
   }
 });
-//Create a new template with a LOGIN FORM; this form should ask for an email and password and send a POST request to /login.Create a GET /login endpoint that responds with this new login form template
 
+//Create a new template with a LOGIN FORM; this form should ask for an email and password and send a POST request to /login.
 app.get("/login", (req, res) => {
   const templateVars = { user: null };
   res.render("login", templateVars);
 });
 
+// Create a GET /login endpoint that responds with this new login form template
 app.post("/login", (req, res) => {
-  console.log(req.body);
+  //console.log(req.body);
   const email = req.body.email;
   const password = req.body.password;
-  
+
   if (!email || !password) {
     return res.status(400).send(" Email or Password cannot be empty ");
   }
@@ -195,8 +172,7 @@ app.post("/login", (req, res) => {
   if (!userPassword) {
     return res.status(403).send("password is incorrect");
   }
-
-  res.cookie("user_id", user.id);
+  req.session.user_id = user.id;
   res.redirect("urls");
 });
 
@@ -213,13 +189,9 @@ app.get("/register", (req, res) => {
   res.render("register", templateVars);
 });
 // This endpoint should add a new user object to the global users object. The user object should include the user's id, email and password, similar to the example above. To generate a random user ID, use the same function you use to generate random IDs for URLs.
-// After adding the user, set a user_id cookie containing the user's newly generated ID.
-// Redirect the user to the /urls page.
-// Test that the users object is properly being appended to. You can insert a console.log or debugger prior to the redirect logic to inspect what data the object contains.
-// Also test that the user_id cookie is being set correctly upon redirection. You already did this sort of testing in the Cookies in Express activity. Use the same approach here.
 app.post("/register", (req, res) => {
-  console.log(req.body.email);
-  console.log(req.body.password);
+  //console.log(req.body.email);
+  //console.log(req.body.password);
   const email = req.body.email;
   const password = req.body.password;
   if (!email || !password) {
@@ -233,12 +205,7 @@ app.post("/register", (req, res) => {
   const userRandomID = generateRandomString();
   const user = { id: userRandomID, email: email, password: hashedPassword };
   users[userRandomID] = user;
-  res.cookie("user_id", userRandomID);
+  req.session.user_id = user.id;
   res.redirect("/urls"); //res.redirect('/login');
-  console.log("register.......", users);
+  //console.log("register.......", users);
 });
-// If the e-mail or password are empty strings, send back a response with the 400 status code.
-// If someone tries to register with an email that is already in the users object, send back a response with the 400 status code. Checking for an email in the users object is something we'll need to do in other routes as well. Consider creating an email lookup helper function to keep your code DRY
-// Modify your app so that only registered and logged in users can create new tiny URLs.
-
-// If someone is not logged in when trying to access /urls/new, redirect them to the login page.
