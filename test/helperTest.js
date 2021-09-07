@@ -1,5 +1,5 @@
 const {assert} = require('chai');
-const {getUserbyEmail} = require('../helpers');
+const {getUserbyEmail,getUserbyID} = require('../helpers');
 
 const testUsers = {
   "userRandomID": {
@@ -19,4 +19,24 @@ describe("getUserbyEmail", function() {
     const expectedOutput = "userRandomID";
     assert.equal(expectedOutput,user.id);
   });
+  it('should return false for the invalid email', function() {
+    const user = getUserbyEmail("user@exa.com", testUsers);
+    assert.notEqual("user@exa.com",user.email);
+  });
+
 });
+
+describe("getUserbyID", function() {
+  it('should return a user with valid email', function() {
+    const user = getUserbyID("user2RandomID", testUsers);
+    const expectedOutput = "user2RandomID";
+    assert.equal(expectedOutput,user.id);
+  });
+  it('should return null', function() {
+    const user = getUserbyID("user-RandomID", testUsers);
+    //const expectedOutput = null;
+    assert.equal(user,null);
+  });
+
+});
+

@@ -5,7 +5,7 @@ const generateRandomString = function () {
   return Math.random().toString(36).substr(2, 6);
 };
 // A FUNCTION to check user, if their the email already exists in the database
-const getUserbyEmail = function (email, users) {
+const getUserbyEmail = function(email, users) {
   for (const userID in users) {
     const user = users[userID];
     if (user.email === email) {

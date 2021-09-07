@@ -41,7 +41,7 @@ const users = {
 };
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.redirect("/register");
 });
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
@@ -55,7 +55,6 @@ app.get("/hello", (req, res) => {
 
 //renders the http://localhost:8080/urls page with the list of short and long URL's
 app.get("/urls", (req, res) => {
-  //console.log("users", users);
   let userID = req.session["user_id"];
   const user = getUserbyID(userID, users);
   const filterURL = {};
@@ -85,12 +84,10 @@ app.get("/urls/new", (req, res) => {
 
 //it will post(submit) new short and long URL to the URL's page.
 app.post("/urls", (req, res) => {
-  //console.log("=========", req.body); // Log the POST request body to the console
   const shortURL = generateRandomString();
   const userID = req.session["user_id"];
   const longURL = req.body.longURL;
   const newURL = { longURL, userID };
-  console.log(urlDatabase);
   urlDatabase[shortURL] = newURL;
   if (userID) {
     res.redirect(`/urls/${shortURL}`);
@@ -121,16 +118,11 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 //post route to delete the url
-//Add a POST route that removes a URL resource: POST /urls/:shortURL/delete
-//After the resource has been deleted, redirect the client back to the urls_index page ("/urls")
 app.post("/urls/:shortURL/delete", (req, res) => {
   const userID = req.session["user_id"];
   const shortURL = req.params.shortURL;
   if (urlDatabase[shortURL].userID === userID) {
-    //console.log("Will delete", shortURL);
     delete urlDatabase[shortURL];
-  } else {
-    //console.log("Will not delete", shortURL);
   }
   res.redirect("/urls");
 });
@@ -142,14 +134,13 @@ app.post("/urls/:id", (req, res) => {
   if (urlDatabase[shortURL].userID === userID) {
     const longURL = req.body.longURL;
     urlDatabase[shortURL].longURL = longURL;
-    //console.log("edited******", longURL);
     res.redirect("/urls");
   } else {
     res.redirect("/urls");
   }
 });
 
-//Create a new template with a LOGIN FORM; this form should ask for an email and password and send a POST request to /login.
+//Create a new template with a login form
 app.get("/login", (req, res) => {
   const templateVars = { user: null };
   res.render("login", templateVars);
@@ -157,7 +148,6 @@ app.get("/login", (req, res) => {
 
 // Create a GET /login endpoint that responds with this new login form template
 app.post("/login", (req, res) => {
-  //console.log(req.body);
   const email = req.body.email;
   const password = req.body.password;
 
@@ -176,22 +166,21 @@ app.post("/login", (req, res) => {
   res.redirect("urls");
 });
 
-// /logout endpoint to clear cookies
+// logout endpoint to clear cookies
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  //res.clearCookie("user_id");
+  req.session = null;
   res.redirect("/login");
 });
 
 //Create a GET /register endpoint
 app.get("/register", (req, res) => {
   const templateVars = { user: null };
-  //const templateVars = {email:email,password:password};
   res.render("register", templateVars);
 });
-// This endpoint should add a new user object to the global users object. The user object should include the user's id, email and password, similar to the example above. To generate a random user ID, use the same function you use to generate random IDs for URLs.
+
+// This endpoint should add a new user object to the global users object.
 app.post("/register", (req, res) => {
-  //console.log(req.body.email);
-  //console.log(req.body.password);
   const email = req.body.email;
   const password = req.body.password;
   if (!email || !password) {
@@ -206,6 +195,5 @@ app.post("/register", (req, res) => {
   const user = { id: userRandomID, email: email, password: hashedPassword };
   users[userRandomID] = user;
   req.session.user_id = user.id;
-  res.redirect("/urls"); //res.redirect('/login');
-  //console.log("register.......", users);
+  res.redirect("/urls");
 });
