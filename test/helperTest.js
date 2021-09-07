@@ -34,7 +34,6 @@ describe("getUserbyID", function() {
   });
   it('should return null', function() {
     const user = getUserbyID("user-RandomID", testUsers);
-    //const expectedOutput = null;
     assert.equal(user,null);
   });
 

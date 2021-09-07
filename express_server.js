@@ -168,7 +168,6 @@ app.post("/login", (req, res) => {
 
 // logout endpoint to clear cookies
 app.post("/logout", (req, res) => {
-  //res.clearCookie("user_id");
   req.session = null;
   res.redirect("/login");
 });
